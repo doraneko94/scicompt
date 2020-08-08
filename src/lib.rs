@@ -8,18 +8,20 @@ impl F for f32{}
 
 pub struct PCA<T: F> {
     /// n_components x n_features
+    pub eigvecs: Option<Array2<T>>,
+    pub eigvals: Option<Array1<<T as Scalar>::Real>>,
     pub components: Option<Array2<T>>,
-    pub eigenvals: Option<Array1<<T as Scalar>::Real>>,
 }
 
 impl<T: F> PCA<T> {
     pub fn new() -> Self {
+        let eigvecs = None;
+        let eigvals = None;
         let components = None;
-        let eigenvals = None;
-        Self { components, eigenvals }
+        Self { eigvecs, eigvals, components }
     }
 
-    pub fn fit(&mut self, x: &Array2<T>) {
+    pub fn fit(&mut self, x: &Array2<T>, n_components: usize) {
         let shape = x.shape();
         let row = shape[0];
         let col = shape[1];
@@ -34,29 +36,36 @@ impl<T: F> PCA<T> {
         }
         match s.eigh(UPLO::Upper) {
             Ok((val, vec)) => {
-                let mut components = Array2::zeros((col, col));
-                let mut eigenvals = Array1::zeros(col);
-                for i in 0..col {
-                    Zip::from(&mut components.slice_mut(s![i, ..]))
-                        .and(vec.slice(s![.., col-i-1]))
-                        .apply(|a, &b| {
-                            *a = b;
-                        });
-                    eigenvals[i] = val[col-i-1];
-                }
-                self.components = Some(components);
-                self.eigenvals = Some(eigenvals);
+                self.eigvecs = Some(vec);
+                self.eigvals = Some(val);
+                self.to_components(n_components);
             }
-            Err(_) => { println!("Couldn't calculate eigenvalues!") }
+            Err(_) => { panic!("Couldn't calculate eigenvalues!") }
         }
     }
 
-    pub fn transform(&self, x: &Array2<T>, n_components: usize) -> Option<Array2<T>> {
+    pub fn to_components(&mut self, n_components: usize) {
+        match &self.eigvecs {
+            Some(vec) => {
+                let mut components = Array2::zeros((n_components, n_components));
+                for i in 0..n_components {
+                    Zip::from(&mut components.slice_mut(s![i, ..]))
+                        .and(vec.slice(s![.., n_components-i-1]))
+                        .apply(|a, &b| {
+                            *a = b;
+                        });
+                }
+                self.components = Some(components);
+            }
+            None => { panic!("PCA has not been fitted!"); }
+        }
+    }
+
+    pub fn transform(&self, x: &Array2<T>) -> Option<Array2<T>> {
         match &self.components {
             Some(vec) => {
-                let components = vec.slice(s![..n_components, ..]).to_owned();
                 let x_mean = x.mean_axis(Axis(0)).unwrap();
-                Some(components.dot(&(x - &x_mean).t()))
+                Some(vec.dot(&(x - &x_mean).t()))
             }
             None => None,
         }
@@ -64,11 +73,11 @@ impl<T: F> PCA<T> {
 
     /// panics if self.eigenval.shape[0] <= component
     pub fn proportion_of_variance(&self, component: usize) -> Option<<T as Scalar>::Real> {
-        match &self.eigenvals {
-            Some(a) => {
-                // let n_components = a.shape()[0];
-                let lambda_sum = a.sum_axis(Axis(0)).into_scalar();
-                Some(a[component] / lambda_sum)
+        match &self.eigvals {
+            Some(val) => {
+                let n_components = val.shape()[0];
+                let lambda_sum = val.sum_axis(Axis(0)).into_scalar();
+                Some(val[n_components - component - 1] / lambda_sum)
             }
             None => None,
         }
@@ -76,11 +85,11 @@ impl<T: F> PCA<T> {
 
     /// panics if self.eigenval.shape[0] <= component
     pub fn cumulative_proportion_of_variance(&self, component: usize) -> Option<<T as Scalar>::Real> {
-        match &self.eigenvals {
-            Some(a) => {
-                // let n_components = a.shape()[0];
-                let lambda_sum = a.sum_axis(Axis(0)).into_scalar();
-                Some(a.slice(s![..component+1]).sum_axis(Axis(0)).into_scalar() / lambda_sum)
+        match &self.eigvals {
+            Some(val) => {
+                let n_components = val.shape()[0];
+                let lambda_sum = val.sum_axis(Axis(0)).into_scalar();
+                Some(val.slice(s![n_components - component - 1..]).sum_axis(Axis(0)).into_scalar() / lambda_sum)
             }
             None => None,
         }

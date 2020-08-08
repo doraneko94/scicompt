@@ -15,11 +15,11 @@ fn main() {
         [7.0, 4.0, 5.0],
         [8.0, 2.0, 2.0]
     ]);
-    pca.fit(&data);
+    pca.fit(&data, 3);
     println!("{:?}", pca.components);
     println!("{:?}", pca.proportion_of_variance(0));
     println!("{:?}", pca.proportion_of_variance(1));
     println!("{:?}", pca.cumulative_proportion_of_variance(1));
     println!("{:?}", pca.components_vec());
-    println!("{:?}", pca.transform(&data, 2));
+    println!("{:?}", pca.transform(&data));
 }
