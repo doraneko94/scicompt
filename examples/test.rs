@@ -1,5 +1,5 @@
 use ndarray::*;
-use scicompt::*;
+use scicompt::pca::*;
 
 fn main() {
     let mut pca = PCA::new();
