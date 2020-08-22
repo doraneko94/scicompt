@@ -1,13 +1,9 @@
 use ndarray::*;
 use ndarray_linalg::*;
-use num_traits::{Float, FromPrimitive};
-use std::ops::DivAssign;
 
-pub trait F: Float + FromPrimitive + std::iter::Sum + DivAssign + Scalar + Lapack {}
-impl F for f64{}
-impl F for f32{}
+use crate::traits::Float;
 
-pub struct PCA<T: F> {
+pub struct PCA<T: Float> {
     /// n_components x n_features
     pub eigvecs: Option<Array2<T>>,
     pub eigvals: Option<Array1<T>>,
@@ -17,7 +13,7 @@ pub struct PCA<T: F> {
     //pub var: Option<Array1<T>>,
 }
 
-impl<T: F> PCA<T> {
+impl<T: Float> PCA<T> {
     pub fn new() -> Self {
         let eigvecs = None;
         let eigvals = None;
