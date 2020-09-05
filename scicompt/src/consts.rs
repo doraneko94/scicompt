@@ -7,7 +7,7 @@ pub trait FloatConst: Float {
 macro_rules! impl_float_const {
 	($type:ty) => {
 		impl FloatConst for $type {
-			const TWO_PI_SQRT: Self = 3.14;
+			const TWO_PI_SQRT: Self = 2.5066282746310002;
 		}
 	};
 }
