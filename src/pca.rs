@@ -1,7 +1,7 @@
 use ndarray::*;
 use ndarray_linalg::*;
 
-use crate::traits::Float;
+use crate::float::Float;
 
 pub struct PCA<T: Float> {
     /// n_components x n_features

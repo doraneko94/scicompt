@@ -1,4 +1,4 @@
-use crate::traits::Float;
+use crate::float::Float;
 
 pub trait Distribution<T: Float> {
     fn mean(&self) -> T;
